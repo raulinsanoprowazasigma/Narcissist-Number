@@ -189,7 +189,7 @@ int main() {
 
 
         if (state == State::INPUT) {
-            sf::Text titulo = creatext(font, "Suma de cubos de los digitos -> 153",34, COL_TEXT);
+            sf::Text titulo = creatext(font, "PRIMER NUMERO NARCISISTA | SUMA DE CUBOS -> 153",34, COL_TEXT);
             center_origin(titulo);
             titulo.setPosition({ WIN_W / 2.f, 110.f });
             window.draw(titulo);
@@ -219,24 +219,26 @@ int main() {
             const int k = static_cast<int>(paso.digits.size());
             const float t = tempclock.getElapsedTime().asSeconds();
 
-            // Factores de animacion (0..1)
+
+
             float p = std::clamp((t - SPLIT_START) / (SPLIT_END - SPLIT_START), 0.f, 1.f);
             float q = std::clamp((t - HOLD_END) / (MERGE_END - HOLD_END), 0.f, 1.f);
 
-            // --- Medir anchuras reales para poder centrar la expresion ------
+
             std::vector<sf::Text> digT;
             std::vector<float> mainW(k);
             for (int i = 0; i < k; ++i) {
                 digT.push_back(creatext(font, std::to_string(paso.digits[i]), BIG, COL_DIGIT));
-                mainW[i] = digT[i].getLocalBounds().size.x;
+				sf::FloatRect b = digT[i].getLocalBounds();
+                digT[i].setOrigin({ b.position.x, 0.f });
+                mainW[i] = b.size.x;
             }
-            sf::Text expModelo = creatext(font, "3", EXP, COL_EXP);
-            float expW = expModelo.getLocalBounds().size.x;
-            sf::Text plusModelo = creatext(font, "+", MID, COL_PLUS);
-            float plusW = plusModelo.getLocalBounds().size.x;
-            const float pad = 20.f; // espacio a cada lado de un "+"
+            sf::Text expmodel = creatext(font, "3", EXP, COL_EXP);
+            float expW = expmodel.getLocalBounds().size.x;
+            sf::Text plusmodel = creatext(font, "+", MID, COL_PLUS);
+            float plusW = plusmodel.getLocalBounds().size.x;
+            const float pad = 20.f;
 
-            // Posiciones AGRUPADAS (forman el numero, p=0)
             float gap = 4.f;
             float totalC = -gap;
             for (int i = 0; i < k; ++i) totalC += mainW[i] + gap;
@@ -244,7 +246,6 @@ int main() {
             float x = (WIN_W - totalC) / 2.f;
             for (int i = 0; i < k; ++i) { clustX[i] = x; x += mainW[i] + gap; }
 
-            // Posiciones SEPARADAS (expresion d^3 + d^3 + ..., p=1)
             float totalS = 0.f;
             for (int i = 0; i < k; ++i) {
                 totalS += mainW[i] + expW;
@@ -260,10 +261,7 @@ int main() {
 
             const float cx = WIN_W / 2.f;
 
-            // --- Dibujar cada digito, su exponente y los signos + -----------
             for (int i = 0; i < k; ++i) {
-                // Durante la separacion vamos de agrupado a separado;
-                // durante la fusion vamos de separado al centro.
                 float baseX = lerp(clustX[i], spreadX[i], p);
                 float dx = (q > 0.f) ? lerp(spreadX[i], cx, q) : baseX;
 
@@ -272,13 +270,11 @@ int main() {
                 digT[i].setPosition({ dx, BASE_Y });
                 window.draw(digT[i]);
 
-                // Exponente: aparece con la separacion, desaparece con la fusion
                 std::uint8_t aExp = static_cast<std::uint8_t>(255 * p * (1.f - q));
                 sf::Text e = creatext(font, "3", EXP, sf::Color(COL_EXP.r, COL_EXP.g, COL_EXP.b, aExp));
                 e.setPosition({ dx + mainW[i], EXP_Y });
                 window.draw(e);
 
-                // Signo "+" entre este digito y el siguiente
                 if (i < k - 1) {
                     float px = (q > 0.f) ? lerp(plusX[i], cx, q) : lerp(clustX[i], plusX[i], p);
                     std::uint8_t aPlus = static_cast<std::uint8_t>(255 * p * (1.f - q));
@@ -288,7 +284,6 @@ int main() {
                 }
             }
 
-            // --- Resultado que se forma al fusionarse -----------------------
             if (q > 0.f) {
                 sf::Color base = (paso.next == 153) ? COL_GREEN : COL_AMBAR;
                 std::uint8_t aRes = static_cast<std::uint8_t>(255 * q);
@@ -297,18 +292,19 @@ int main() {
                 center_origin(res);
                 float s = lerp(0.6f, 1.0f, q);
                 res.setScale({ s, s });
-                res.setPosition({ cx, CENTER_Y });
+                sf::FloatRect db = digT[0].getLocalBounds();
+                float digitCenterY = BASE_Y + db.position.y + db.size.y / 2.f;
+                res.setPosition({ cx, digitCenterY });
                 window.draw(res);
             }
 
-            // Pie informativo
             sf::Text pie = creatext(font, "n  ->  suma de los cubos de sus digitos",
                 22, COL_TEXT);
             center_origin(pie);
             pie.setPosition({ WIN_W / 2.f, WIN_H - 40.f });
             window.draw(pie);
         }
-        else { // Estado::DONE
+        else {
             sf::Text n153 = creatext(font, "153", RESULT + 30, COL_GREEN);
             center_origin(n153);
             n153.setPosition({ WIN_W / 2.f, 230.f });
@@ -327,16 +323,13 @@ int main() {
             window.draw(rein);
         }
 
-        // ---- Contador de iteraciones (esquina superior izquierda) ----------
         if (state != State::INPUT) {
-            sf::Text cont = creatext(font, "Iteraciones: " + std::to_string(counter),
-                30, COL_TEXT);
+            sf::Text cont = creatext(font, "Iteraciones: " + std::to_string(counter),30, COL_TEXT);
             cont.setPosition({ 24.f, 16.f });
             window.draw(cont);
         }
 
         window.display();
     }
-
     return 0;
 }
